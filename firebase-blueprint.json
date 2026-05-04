@@ -1,0 +1,186 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores student profile and performance metrics.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "examInterests": { "type": "array", "items": { "type": "string" } },
+        "readinessScore": { "type": "number" },
+        "lastActive": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Question": {
+      "title": "Math Question",
+      "description": "Stores extracted and AI-classified math questions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "string" },
+        "chapter": { "type": "string" },
+        "subtopic": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["Easy", "Medium", "Hard"] },
+        "examType": { "type": "string" },
+        "trickMethod": { "type": "string" },
+        "standardMethod": { "type": "string" },
+        "conceptNote": { "type": "string" },
+        "probabilityScore": { "type": "number" },
+        "sourcePdf": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "chapter", "correctAnswer"]
+    },
+    "Attempt": {
+      "title": "Question Attempt",
+      "description": "Records a student's attempt at a question.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "questionId": { "type": "string" },
+        "selectedAnswer": { "type": "string" },
+        "isCorrect": { "type": "boolean" },
+        "timeTaken": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "chapter": { "type": "string" }
+      },
+      "required": ["uid", "questionId", "isCorrect"]
+    },
+    "Streak": {
+      "title": "User Streak",
+      "description": "Tracks daily practice consistency.",
+      "type": "object",
+      "properties": {
+        "currentStreak": { "type": "number" },
+        "longestStreak": { "type": "number" },
+        "lastPracticeDate": { "type": "string", "format": "date" }
+      },
+      "required": ["currentStreak", "longestStreak"]
+    },
+    "SRSData": {
+      "title": "Spaced Repetition Data",
+      "description": "Stores SRS metrics for a specific question.",
+      "type": "object",
+      "properties": {
+        "interval": { "type": "number" },
+        "repetition": { "type": "number" },
+        "easeFactor": { "type": "number" },
+        "nextReviewDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["interval", "repetition", "easeFactor", "nextReviewDate"]
+    },
+    "Bookmark": {
+      "title": "User Bookmark",
+      "description": "Stores a saved question with optional notes.",
+      "type": "object",
+      "properties": {
+        "questionId": { "type": "string" },
+        "notes": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["questionId"]
+    },
+    "MarkedForReview": {
+      "title": "Marked for Review",
+      "description": "Stores a question marked for later review.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Upload": {
+      "title": "PDF Upload Record",
+      "description": "Metadata for a processed PDF file.",
+      "type": "object",
+      "properties": {
+        "fileName": { "type": "string" },
+        "questionCount": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "breakdown": { "type": "object" },
+        "topChapters": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["fileName", "questionCount"]
+    },
+    "MockAttempt": {
+      "title": "Mock Test Attempt",
+      "description": "Summary of a completed mock test.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "examType": { "type": "string" },
+        "duration": { "type": "number" },
+        "timeTaken": { "type": "number" },
+        "score": { "type": "number" },
+        "results": { "type": "array" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "examType", "score"]
+    },
+    "ActiveSession": {
+      "title": "Active Practice Session",
+      "description": "Stores current state of a practice session for resuming.",
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string" },
+        "selectedExam": { "type": "string" },
+        "selectedChapter": { "type": "string" },
+        "selectedDifficulty": { "type": "string" },
+        "progressiveDifficulty": { "type": "boolean" },
+        "currentDifficultyLevel": { "type": "string" },
+        "consecutiveCorrect": { "type": "number" },
+        "currentIndex": { "type": "number" },
+        "sessionStats": { "type": "object" },
+        "questionIds": { "type": "array", "items": { "type": "string" } },
+        "completed": { "type": "boolean" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profiles."
+    },
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Global question bank."
+    },
+    "/users/{uid}/attempts/{attemptId}": {
+      "schema": "Attempt",
+      "description": "User-specific question attempts."
+    },
+    "/users/{uid}/streak/current": {
+      "schema": "Streak",
+      "description": "User's current practice streak."
+    },
+    "/users/{uid}/spacedRepetition/{questionId}": {
+      "schema": "SRSData",
+      "description": "Spaced repetition data for individual questions."
+    },
+    "/users/{uid}/bookmarks/{questionId}": {
+      "schema": "Bookmark",
+      "description": "User's bookmarked questions."
+    },
+    "/users/{uid}/markedForReview/{questionId}": {
+      "schema": "MarkedForReview",
+      "description": "User's questions marked for review."
+    },
+    "/users/{uid}/uploads/{uploadId}": {
+      "schema": "Upload",
+      "description": "History of PDF uploads."
+    },
+    "/users/{uid}/mockAttempts/{attemptId}": {
+      "schema": "MockAttempt",
+      "description": "History of mock test attempts."
+    },
+    "/users/{uid}/activeSessions/{sessionId}": {
+      "schema": "ActiveSession",
+      "description": "Active practice or mock sessions for resuming."
+    }
+  }
+}

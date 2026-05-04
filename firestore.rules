@@ -1,0 +1,174 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isAdmin() {
+      return isAuthenticated() && 
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin') ||
+         (request.auth.token.email == "alamimteyaj368@gmail.com" && request.auth.token.get('email_verified', false) == true));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return data.uid is string && data.email is string &&
+             (!('displayName' in data) || data.displayName is string) &&
+             (!('examInterests' in data) || data.examInterests is list) &&
+             (!('readinessScore' in data) || data.readinessScore is number) &&
+             (!('lastActive' in data) || data.lastActive is timestamp) &&
+             (!('lastLogin' in data) || data.lastLogin is timestamp);
+    }
+    function isValidNote(data) {
+      return data.text is string && data.text.size() < 5000;
+    }
+    function isValidQuestion(data) {
+      return data.text is string && data.text.size() < 5000 &&
+             data.options is list && data.options.size() <= 6 &&
+             data.correctAnswer is string &&
+             data.chapter is string &&
+             data.difficulty in ['Easy', 'Medium', 'Hard'];
+    }
+    function isValidAttempt(data) {
+      return data.uid == request.auth.uid &&
+             data.questionId is string &&
+             data.isCorrect is bool &&
+             data.chapter is string &&
+             (!('hintsUsed' in data) || data.hintsUsed is number);
+    }
+    function isValidStreak(data) {
+      return data.currentStreak is number &&
+             data.longestStreak is number &&
+             (!('lastPracticeDate' in data) || data.lastPracticeDate is string);
+    }
+    function isValidSRS(data) {
+      return data.interval is number &&
+             data.repetition is number &&
+             data.easeFactor is number &&
+             data.nextReviewDate is timestamp;
+    }
+    function isValidBookmark(data) {
+      return data.questionId is string &&
+             (!('notes' in data) || data.notes is string);
+    }
+    function isValidUpload(data) {
+      return data.fileName is string &&
+             data.questionCount is number &&
+             (!('topChapters' in data) || data.topChapters is list);
+    }
+    function isValidMockAttempt(data) {
+      return data.uid == request.auth.uid &&
+             data.examType is string &&
+             data.score is number &&
+             data.results is list;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isOwner(uid) && isValidUser(request.resource.data);
+      
+      match /attempts/{attemptId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidAttempt(request.resource.data);
+      }
+
+      match /streak/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidStreak(request.resource.data);
+      }
+
+      match /spacedRepetition/{questionId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidSRS(request.resource.data);
+      }
+
+      match /bookmarks/{questionId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidBookmark(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /markedForReview/{questionId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      match /uploads/{uploadId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidUpload(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /mockAttempts/{attemptId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid) && isValidMockAttempt(request.resource.data);
+      }
+
+      match /activeSessions/{sessionId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      match /settings/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+      }
+
+      match /notes/{questionId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid) && isValidNote(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /stats/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+      }
+
+      match /formulas/{formulaId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      match /abilityModel/{chapter} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+      }
+
+      match /gamification/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+      }
+
+      match /studyPlan/{docId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid);
+      }
+    }
+
+    match /questions/{questionId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidQuestion(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
